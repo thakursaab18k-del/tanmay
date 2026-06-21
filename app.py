@@ -31,14 +31,14 @@ app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return f"<h3>Userbot Status: Active & Running</h3><p>Total Groups Monitored: {len(target_groups)}</p><p>Active Group IDs: {list(target_groups)}</p>"
+    return f"<h3>Userbot Status: Running</h3><p>Total Groups Monitored: {len(target_groups)}</p><p>Active IDs: {list(target_groups)}</p>"
 
 def run_flask():
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
 
 # =====================================================================
-# 🤖 AUTOMATION & DUAL-MODE BYPASS UTILITIES
+# 🤖 UTILITIES & INTUITIVE BYPASS SYSTEMS
 # =====================================================================
 def extract_hash_or_username(link):
     link = link.strip()
@@ -63,65 +63,59 @@ async def join_group(link_data):
             print(f"Successfully joined public chat: {link_data['value']}")
             return entity
     except Exception as e:
-        print(f"Join warning/limit for {link_data['value']}: {e}")
+        print(f"Join buffer warning for {link_data['value']}: {e}")
         try:
             entity = await client.get_entity(link_data['value'])
             return entity
         except Exception:
             return None
 
-async def process_group_by_mode(entity):
-    """
-    Dual-Mode Logic: Automatically detects if a group is normal 
-    or has a verification bot setup.
-    """
-    if not entity:
-        return
-        
-    print(f"Analyzing security mode for group: {entity.title} (ID: {entity.id})")
-    await asyncio.sleep(4)  # Security bot message standard trigger time
-    
-    has_verification_bot = False
-    
+async def handle_join_verifications(entity):
+    """Background scanner searching for channel locks or captcha verification buttons."""
+    await asyncio.sleep(3)
     try:
-        async for message in client.iter_messages(entity, limit=5):
+        async for message in client.iter_messages(entity, limit=6):
             if message.buttons:
-                has_verification_bot = True
-                print(f"[MODE: Verification Bot Detected] Processing security lock buttons...")
+                print(f"Buttons found in group {entity.id}. Checking for lock requirements...")
                 for row in message.buttons:
                     for button in row:
+                        # Extract and handle mandatory channel join links inside buttons (e.g., DIGI ANTI style)
                         if button.url:
-                            print(f"🔗 Force join link found: {button.url}")
+                            print(f"🔗 Mandatory unlock link found: {button.url}. Processing...")
                             link_data = extract_hash_or_username(button.url)
                             if link_data:
                                 await join_group(link_data)
                                 await asyncio.sleep(2)
                         
+                        # Trigger click activation on human/verify inline buttons
                         if any(word in (button.text or "").lower() for word in ["click", "verify", "join", "human", "link"]):
                             try:
                                 await message.click(button)
-                                print("Clicked bypass button.")
+                                print("Bypass step verification button clicked successfully!")
                             except Exception:
                                 pass
-                break
     except Exception as e:
-        print(f"Error checking group buttons: {e}")
+        print(f"Verification parsing error: {e}")
 
-    # [MODE: Normal Group or Verification Cleared]
-    # Agar group normal hai ya verification bypass ho gayi hai, list me save karo
-    target_groups.add(entity.id)
-    print(f"Added to active ad loop rotation: {entity.title} (Total: {len(target_groups)})")
+async def process_and_register(value):
+    """Joins a link, registers it for ads instantly, and scans for locks simultaneously."""
+    link_data = extract_hash_or_username(value)
+    if link_data:
+        entity = await join_group(link_data)
+        if entity:
+            # INSTANT REGISTRATION: Ensures normal groups are added immediately without waiting
+            target_groups.add(entity.id)
+            print(f"Added group to broadcast rotation: {entity.id}")
+            
+            # Run the channel-lock/verification check in the background concurrently
+            client.loop.create_task(handle_join_verifications(entity))
 
 async def load_env_links():
-    print("Scanning Environment Variables for initial links...")
+    print("Checking environment variables for initial group links...")
     for key, value in os.environ.items():
         if key.upper().startswith("LINK") and value:
-            link_data = extract_hash_or_username(value)
-            if link_data:
-                entity = await join_group(link_data)
-                if entity:
-                    await process_group_by_mode(entity)
-                    await asyncio.sleep(4) # Flood protection
+            await process_and_register(value)
+            await asyncio.sleep(4) # Flood protection delay
 
 @client.on(events.NewMessage(chats='me'))
 async def saved_messages_handler(event):
@@ -131,19 +125,15 @@ async def saved_messages_handler(event):
     if not links:
         return
 
-    await event.respond("⚡ Intelligent Auto-Mode Processing Activated...")
+    await event.respond("⚡ Processing live group registrations...")
     for link in links:
-        link_data = extract_hash_or_username(link)
-        if link_data:
-            entity = await join_group(link_data)
-            if entity:
-                await process_group_by_mode(entity)
-                await asyncio.sleep(3)
+        await process_and_register(link)
+        await asyncio.sleep(3)
                 
-    await event.respond(f"✅ Configuration Saved! Monitored Groups Count: {len(target_groups)}")
+    await event.respond(f"✅ Loop configured! Monitored Groups Count: {len(target_groups)}")
 
 # =====================================================================
-# ⏳ INTELLIGENT 5-MINUTE BROADCAST LOOP
+# ⏳ 5-MINUTE BROADCAST LOOP
 # =====================================================================
 async def advertising_loop():
     while not client.is_connected():
@@ -151,21 +141,21 @@ async def advertising_loop():
         
     while True:
         if target_groups:
-            print(f"Starting broadcast sequence for {len(target_groups)} active endpoints...")
+            print(f"Broadcasting message to {len(target_groups)} groups...")
             for group_id in list(target_groups):
                 try:
                     await client.send_message(group_id, AD_MESSAGE)
-                    print(f"Ad pushed successfully to group ID: {group_id}")
-                    await asyncio.sleep(4.0)  # Safe delay between messages
+                    print(f"Message successfully sent to: {group_id}")
+                    await asyncio.sleep(3.5) # Anti-flood delay
                 except Exception as e:
-                    print(f"Skipping or cleaning restricted group {group_id}: {e}")
+                    print(f"Could not send message to group {group_id}: {e}")
                     if "CHAT_WRITE_FORBIDDEN" in str(e) or "USER_BANNED_IN_CHANNEL" in str(e):
                         target_groups.discard(group_id)
         await asyncio.sleep(INTERVAL)
 
 async def main():
     await client.start()
-    print("Userbot client successfully authenticated and live!")
+    print("Userbot client connected and authenticated!")
     
     await load_env_links()
     client.loop.create_task(advertising_loop())
