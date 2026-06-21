@@ -9,11 +9,11 @@ from telethon.tl.functions.channels import JoinChannelRequest
 from telethon.tl.functions.messages import ImportChatInviteRequest
 
 # =====================================================================
-# ⚙️ TELEGRAM CREDENTIALS
+# ⚙️ TELEGRAM CREDENTIALS (UPDATED WITH NEW STRING SESSION)
 # =====================================================================
 API_ID = 30089442   
 API_HASH = '842dc7bbd3ce4a4f96194814dcb725a8'  
-SESSION_STRING = "1BVtsOGsBu2UuBQK2ziIvMsDqnw2Che930z-M-77KcUNl-QTxVciGU6JlnUcQiWS6DHpN-kU1vlZlIk-B0v77UZuXM4Nmu1x7KSag_F9nQvRqPY4a-HsoWMxhCOmBUpCKHacawQC-KeyhCmHxzD8KtRG5woWVWT0-6pQafvXUuQPfbwQy1Mr_yBBZxMwkOVlDS0zy2JFlvLL1ZeRFpXubowuCy_QN-NAK-C-LujeCPnPILCjGx3bGM7lv00eKd7Fp1rd5v0-FaZ2jhp8B1wM4eCtk23RqBVo-tkBVDEP_zOR5HX8glnzFUBfph3JSQHymd7dWR3re5WHYFqmMxQxWFMasfCciFcc="
+SESSION_STRING = "1BVtsOIgBuyVmUa7xkoUJmMRdfa3flcRiZZjucVKYINxqqUmWbDu9Tdy9hMe_2sV4prm_1IabRRUr4cAdKRCiYqg69dkpZ9DxYAo4sBie7YwFtxsQSiIXNS8Y2LhJKykE656WzTeUl18XuXi4AsBouKaeT2-IoCJju5Tp52Fy4C-gLryHhgFnMtB5PvwY7YvWROa2MIB4m6eXlaTw3wnoQzXhY9bkgJC_WNr0NNhYW97RVzlaq70vGAXpn4sOu4LqiOP7QyxHlUvnYY3wyN5rg9W-DYshlOmSvEwUJMufWiQC1pprD8WIv5uVLVaOmURfn5zWlzDrG38S4yKHKW004T7JZfH3wos="
 
 # =====================================================================
 # 🌐 ENVIRONMENT VARIABLES (FROM RENDER DASHBOARD)
@@ -21,24 +21,49 @@ SESSION_STRING = "1BVtsOGsBu2UuBQK2ziIvMsDqnw2Che930z-M-77KcUNl-QTxVciGU6JlnUcQi
 AD_MESSAGE = os.getenv("AD_MESSAGE", "Default promotional message! Set AD_MESSAGE in Render.")
 INTERVAL = 300  # 5 minutes
 
-target_groups = set()
+# Tracking Sets for tanmay-2.onrender.com Dashboard
+joined_groups_count = 0
+target_groups = set()  
 client = TelegramClient(StringSession(SESSION_STRING), API_ID, API_HASH)
 
 # =====================================================================
-# 🧪 FLASK WEB SERVER
+# 🧪 FLASK WEB SERVER (Live Monitor Dashboard)
 # =====================================================================
 app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return f"<h3>Userbot Status: Running</h3><p>Total Groups Monitored: {len(target_groups)}</p><p>Active IDs: {list(target_groups)}</p>"
+    return f"""
+    <html>
+        <head>
+            <title>Userbot Monitor Dashboard</title>
+            <style>
+                body {{ font-family: Arial, sans-serif; margin: 40px; background-color: #f4f6f9; color: #333; }}
+                .card {{ background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 500px; }}
+                h2 {{ color: #2c3e50; }}
+                .status {{ font-size: 18px; margin: 10px 0; }}
+                .highlight {{ font-weight: bold; color: #2980b9; }}
+                .success {{ font-weight: bold; color: #27ae60; }}
+            </style>
+        </head>
+        <body>
+            <div class="card">
+                <h2>📊 Userbot Advertising Status</h2>
+                <hr>
+                <p class="status">✅ Total Groups Joined: <span class="highlight">{joined_groups_count}</span></p>
+                <p class="status">📢 Active Messaging Rotation: <span class="success">{len(target_groups)} GC</span></p>
+                <p style="font-size: 12px; color: #7f8c8d; margin-top: 20px;">Status: Active & Running (Refreshes dynamically)</p>
+            </div>
+        </body>
+    </html>
+    """
 
 def run_flask():
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
 
 # =====================================================================
-# 🤖 UTILITIES & INTUITIVE BYPASS SYSTEMS
+# 🤖 AUTOMATION & EXPLICIT BYPASS UTILITIES
 # =====================================================================
 def extract_hash_or_username(link):
     link = link.strip()
@@ -63,7 +88,7 @@ async def join_group(link_data):
             print(f"Successfully joined public chat: {link_data['value']}")
             return entity
     except Exception as e:
-        print(f"Join buffer warning for {link_data['value']}: {e}")
+        print(f"Join warning/limit for {link_data['value']}: {e}")
         try:
             entity = await client.get_entity(link_data['value'])
             return entity
@@ -71,51 +96,50 @@ async def join_group(link_data):
             return None
 
 async def handle_join_verifications(entity):
-    """Background scanner searching for channel locks or captcha verification buttons."""
-    await asyncio.sleep(3)
+    """Background scanner searching for channel locks or verification buttons."""
+    await asyncio.sleep(4)
     try:
         async for message in client.iter_messages(entity, limit=6):
             if message.buttons:
-                print(f"Buttons found in group {entity.id}. Checking for lock requirements...")
+                print(f"Verification elements detected in group {entity.id}. Processing bypass...")
                 for row in message.buttons:
                     for button in row:
-                        # Extract and handle mandatory channel join links inside buttons (e.g., DIGI ANTI style)
                         if button.url:
-                            print(f"🔗 Mandatory unlock link found: {button.url}. Processing...")
+                            print(f"🔗 Force join restriction link found: {button.url}")
                             link_data = extract_hash_or_username(button.url)
                             if link_data:
                                 await join_group(link_data)
                                 await asyncio.sleep(2)
                         
-                        # Trigger click activation on human/verify inline buttons
                         if any(word in (button.text or "").lower() for word in ["click", "verify", "join", "human", "link"]):
                             try:
                                 await message.click(button)
-                                print("Bypass step verification button clicked successfully!")
+                                print("Bypass button activated successfully!")
                             except Exception:
                                 pass
     except Exception as e:
         print(f"Verification parsing error: {e}")
 
 async def process_and_register(value):
-    """Joins a link, registers it for ads instantly, and scans for locks simultaneously."""
+    global joined_groups_count
     link_data = extract_hash_or_username(value)
     if link_data:
         entity = await join_group(link_data)
         if entity:
-            # INSTANT REGISTRATION: Ensures normal groups are added immediately without waiting
+            joined_groups_count += 1
+            # INSTANT ACTION: Har group bina wait kiye messaging loop me turant add hoga
             target_groups.add(entity.id)
-            print(f"Added group to broadcast rotation: {entity.id}")
+            print(f"Registered group {entity.id} for continuous message broadcasting.")
             
-            # Run the channel-lock/verification check in the background concurrently
+            # Security checks side-by-side run hote rahenge bina main thread roke
             client.loop.create_task(handle_join_verifications(entity))
 
 async def load_env_links():
-    print("Checking environment variables for initial group links...")
+    print("Scanning environment variables for initial group lists...")
     for key, value in os.environ.items():
         if key.upper().startswith("LINK") and value:
             await process_and_register(value)
-            await asyncio.sleep(4) # Flood protection delay
+            await asyncio.sleep(4) # Flood protection buffer
 
 @client.on(events.NewMessage(chats='me'))
 async def saved_messages_handler(event):
@@ -125,15 +149,15 @@ async def saved_messages_handler(event):
     if not links:
         return
 
-    await event.respond("⚡ Processing live group registrations...")
+    await event.respond("⚡ Processing dynamic links into active rotation...")
     for link in links:
         await process_and_register(link)
         await asyncio.sleep(3)
                 
-    await event.respond(f"✅ Loop configured! Monitored Groups Count: {len(target_groups)}")
+    await event.respond(f"✅ Loop Updated! Total active groups: {len(target_groups)}")
 
 # =====================================================================
-# ⏳ 5-MINUTE BROADCAST LOOP
+# ⏳ BROADCAST ROTATION (5-MINUTE INTERVAL)
 # =====================================================================
 async def advertising_loop():
     while not client.is_connected():
@@ -141,29 +165,12 @@ async def advertising_loop():
         
     while True:
         if target_groups:
-            print(f"Broadcasting message to {len(target_groups)} groups...")
+            print(f"Starting broadcast sequence for {len(target_groups)} active channels...")
             for group_id in list(target_groups):
                 try:
                     await client.send_message(group_id, AD_MESSAGE)
-                    print(f"Message successfully sent to: {group_id}")
-                    await asyncio.sleep(3.5) # Anti-flood delay
+                    print(f"Message successfully delivered to endpoint: {group_id}")
+                    await asyncio.sleep(4.0) # Safe spacing delay
                 except Exception as e:
-                    print(f"Could not send message to group {group_id}: {e}")
-                    if "CHAT_WRITE_FORBIDDEN" in str(e) or "USER_BANNED_IN_CHANNEL" in str(e):
-                        target_groups.discard(group_id)
-        await asyncio.sleep(INTERVAL)
-
-async def main():
-    await client.start()
-    print("Userbot client connected and authenticated!")
-    
-    await load_env_links()
-    client.loop.create_task(advertising_loop())
-    await client.run_until_disconnected()
-
-if __name__ == '__main__':
-    flask_thread = threading.Thread(target=run_flask)
-    flask_thread.daemon = True
-    flask_thread.start()
-
-    asyncio.run(main())
+                    print(f"Skipping or wiping restricted group {group_id}: {e}")
+                    if "CHAT_WRITE_FORBIDDEN" in str(e) or "USER_BANNED_IN
